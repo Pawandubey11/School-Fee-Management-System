@@ -1,0 +1,11 @@
+.git
+.github
+tests
+phpunit.xml
+Dockerfile
+.dockerignore
+docker
+docker-compose.yml
+railway.json
+render.yaml
+vendor
