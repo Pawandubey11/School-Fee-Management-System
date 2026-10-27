@@ -9,32 +9,46 @@ use Illuminate\Support\Facades\Validator;
 class displayController extends Controller
 {   
     function receipt(REQUEST $request){
-          $validator = Validator::make($request->all(), [
+        // Clean mobile number: strip spaces, dashes, leading +91, 91, or leading 0
+        $cleanedMobile = preg_replace('/[\s\-]/', '', $request->fetch_mobile);
+        $cleanedMobile = preg_replace('/^(\+91|91|0)(?=\d{10}$)/', '', $cleanedMobile);
+        $request->merge(['fetch_mobile' => $cleanedMobile]);
+
+        $validator = Validator::make($request->all(), [
             'fetch_name' => 'required|string|regex:/^[a-zA-Z\s]+$/',
             'fetch_email' => 'required|email',
             'fetch_mobile' => 'required|numeric|digits:10',
-            ]);
-            if ($validator->fails()) {
-                return response()->json(['error'=>'validateerror','message' => $validator->errors(),]);
-            }
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['error'=>'validateerror','message' => $validator->errors(),]);
+        }
 
+        $name = trim($request->fetch_name);
+        $email = trim($request->fetch_email);
+        $mobile = $cleanedMobile;
 
-    $name= $request->fetch_name;
-    $email= $request->fetch_email;
-    $mobile= $request->fetch_mobile;
+        // Fetch record from db with case-insensitive matching
+        $record = Payment::whereRaw('LOWER(student_name) = ?', [strtolower($name)])
+            ->whereRaw('LOWER(email) = ?', [strtolower($email)])
+            ->where('mobile', $mobile)
+            ->first();
 
-                //fetch record from db
-                $record = payment::where('student_name', $name)
-                ->where('email', $email)
+        // Fallback: match by email and mobile if name had minor differences
+        if (!$record) {
+            $record = Payment::whereRaw('LOWER(email) = ?', [strtolower($email)])
                 ->where('mobile', $mobile)
                 ->first();
-               
-                if ($record) {
-                    return response()->json($record);
-                   } else {
-                   return response()->json(['error'=>'recorderror','message'=>'Sorry, the record was not found. Please try again later']);
-                  }
-}
+        }
+
+        if ($record) {
+            return response()->json($record);
+        } else {
+            return response()->json([
+                'error' => 'recorderror',
+                'message' => 'Sorry, no payment record was found for this student. Please make sure the fee payment form was submitted successfully and the email and mobile match.'
+            ]);
+        }
+    }
 
     function receipt_download(REQUEST $request){
     // Retrieve data from the request

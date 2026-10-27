@@ -20,67 +20,100 @@ class FormController extends Controller
             'month'=>'required|integer',
             'address'=>'required|string|max:255'
          ]);*/
-         $validator = Validator::make($request->all(), [
-        'student_name' => 'required|string|regex:/^[a-zA-Z\s]+$/',
-        'email' => 'required|email',
-        'mobile' => 'required|numeric|digits:10',
-        'grade' => 'required|integer|between:1,12',
-        'fees' => 'required|numeric|between:2000,9000',
-        'month' => 'required',
-        'address' => 'required|string',
-          
-      ]);
-      if ($validator->fails()) {
-        // Return the validation errors as JSON response
-        return response()->json(['status' => 'error','errors' => $validator->errors(),]);
-    }
+        // Clean mobile number: strip spaces, dashes, leading +91, 91, or leading 0
+        $cleanedMobile = preg_replace('/[\s\-]/', '', $request->mobile);
+        $cleanedMobile = preg_replace('/^(\+91|91|0)(?=\d{10}$)/', '', $cleanedMobile);
+        $request->merge(['mobile' => $cleanedMobile]);
+
+        $validator = Validator::make($request->all(), [
+            'student_name' => 'required|string|regex:/^[a-zA-Z\s]+$/',
+            'email' => 'required|email',
+            'mobile' => 'required|numeric|digits:10',
+            'grade' => 'required|integer|between:1,12',
+            'fees' => 'required|numeric|min:1',
+            'month' => 'required',
+            'address' => 'required|string',
+        ]);
+        if ($validator->fails()) {
+            // Return the validation errors as JSON response
+            return response()->json(['status' => 'error', 'errors' => $validator->errors()]);
+        }
     
-  //Initially store the form record then the rest record store when it completed
-         $a = new Payment;
-         $receipt = 'Fees_' . mt_rand(10000, 99999);  //in place of receipt pass id or any dat like mobile etc not important
-         $a->receipt_no= $receipt;
-         $a->student_name = $request->student_name;
-         $a->email = $request->email;
-         $a->mobile = $request->mobile;
-         $a->class = $request->grade;
-         $a->fees = $request->fees;
-         $a->total_fees_paid = $request->fees*$request->month;
-         $a->month = $request->month;
-         $a->address = $request->address;
-         $a->save();
+        // Initially store the form record
+        $a = new Payment;
+        $receipt = 'Fees_' . mt_rand(10000, 99999);
+        $a->receipt_no = $receipt;
+        $a->student_name = $request->student_name;
+        $a->email = $request->email;
+        $a->mobile = $cleanedMobile;
+        $a->class = $request->grade;
+        $a->fees = $request->fees;
+        $a->total_fees_paid = $request->fees * $request->month;
+        $a->month = $request->month;
+        $a->address = $request->address;
+        $a->save();
                   
-         $amount = $request->fees*100; //because razorpay take as paise i.e amount*100
-         $total_fees_month = $amount*$request->month;
-         $key = config('services.razorpay.key', env('RAZORPAY_KEY_ID'));
-         $secret = config('services.razorpay.secret', env('RAZORPAY_KEY_SECRET'));
+        $amount = $request->fees * 100; // because razorpay takes paise i.e amount*100
+        $total_fees_month = $amount * $request->month;
+        $key = config('services.razorpay.key', env('RAZORPAY_KEY_ID'));
+        $secret = config('services.razorpay.secret', env('RAZORPAY_KEY_SECRET'));
 
-         if (!$key || !$secret) {
-             return response()->json([
-                 "status" => "error",
-                 "errors" => ["gateway" => ["Payment gateway credentials are not configured on the server."]]
-             ]);
-         }
+        // If live/test Razorpay keys are configured, create Razorpay order
+        if ($key && $secret) {
+            try {
+                $api = new Api($key, $secret);
+                $razororder = $api->order->create([
+                    'receipt' => $receipt,
+                    'amount' => $total_fees_month,
+                    'currency' => 'INR',
+                ]);
+                $order_id = $razororder->id;
+                $currency = $razororder->currency;
 
-         try {
-             $api = new Api($key, $secret);
-             //Create Order id
-             $razororder=$api->order->create(array('receipt' => $receipt, 'amount' =>$total_fees_month, 'currency' => 'INR',));
-             $order_id= $razororder->id; //received order id
-             $currency = $razororder->currency;
-         } catch (\Exception $e) {
-             return response()->json([
-                 "status" => "error",
-                 "errors" => ["gateway" => ["Payment gateway error: " . $e->getMessage()]]
-             ]);
-         }
+                $upd = Payment::find($a->id);
+                $upd->order_id = $order_id;
+                $upd->currency = $currency;
+                $upd->update();
 
-         //store order_id in db after creating
-         $upd = Payment::find($a->id);   //find by primary key of form storing value autocreated
-         $upd->order_id= $order_id;
-         $upd->currency= $currency;
-         $upd->update();
-//pass required field to frontend for checkout page
-         return response()->json(["status" => "success","order_id" => $order_id, "amount"=>$amount, "student_name"=>$request->student_name,"email"=>$request->email,"mobile"=>$request->mobile]);
+                return response()->json([
+                    "status" => "success",
+                    "mode" => "live",
+                    "order_id" => $order_id,
+                    "amount" => $amount,
+                    "student_name" => $request->student_name,
+                    "email" => $request->email,
+                    "mobile" => $cleanedMobile,
+                    "receipt_no" => $receipt
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    "status" => "error",
+                    "errors" => ["gateway" => ["Payment gateway error: " . $e->getMessage()]]
+                ]);
+            }
+        } else {
+            // Demo mode: complete simulated payment so students can immediately test receipt download
+            $order_id = 'order_demo_' . mt_rand(100000, 999999);
+            $payment_id = 'pay_demo_' . mt_rand(100000, 999999);
+            $upd = Payment::find($a->id);
+            $upd->order_id = $order_id;
+            $upd->payment_id = $payment_id;
+            $upd->payment_status = "Successful";
+            $upd->currency = 'INR';
+            $upd->update();
+
+            return response()->json([
+                "status" => "success",
+                "mode" => "demo",
+                "order_id" => $order_id,
+                "amount" => $amount,
+                "student_name" => $request->student_name,
+                "email" => $request->email,
+                "mobile" => $cleanedMobile,
+                "receipt_no" => $receipt,
+                "message" => "Payment completed successfully! Receipt No: " . $receipt . ". You can now click 'Get Receipt' to view and download it."
+            ]);
+        }
 
   }
 

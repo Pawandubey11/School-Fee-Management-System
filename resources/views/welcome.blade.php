@@ -45,7 +45,7 @@
 </div>
 <div class="col-md-6">
     <label for="fees" class="form-label">Fees Per Month</label>
-    <input type="number" name="fees" class="form-control" id="fees" value="{{old('fees')}}" min="2000" max="10000" required> @error('fees')<span class="text-danger">{{$message}}</span>@enderror
+    <input type="number" name="fees" class="form-control" id="fees" value="{{old('fees')}}" min="100" max="100000" required> @error('fees')<span class="text-danger">{{$message}}</span>@enderror
     <span class="error" id="fees_error" style="color: black;"></span>
 </div>
 
@@ -107,7 +107,15 @@ $(document).ready(function(){
                         alert(responseString);*/
                         //pass data receive from backend to function and call function
                         if (response.status === 'success') {
-                         paynow(response.amount,response.order_id,response.student_name,response.email,response.mobile);
+                          $('.error').text('');
+                          $('#fetch_name').val(response.student_name);
+                          $('#fetch_email').val(response.email);
+                          $('#fetch_mobile').val(response.mobile);
+                          if (response.mode === 'demo') {
+                            swal("Payment Successful", response.message || "Payment Successfully Completed! You can now click 'Get Receipt' to view your receipt.", "success");
+                          } else {
+                            paynow(response.amount,response.order_id,response.student_name,response.email,response.mobile);
+                          }
                         }
                         else if (response.status === 'error') {
                              $('.error').text(''); // Clear any previous error messages
