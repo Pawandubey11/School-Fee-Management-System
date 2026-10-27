@@ -23,7 +23,12 @@ class FormController extends Controller
         // Clean mobile number: strip spaces, dashes, leading +91, 91, or leading 0
         $cleanedMobile = preg_replace('/[\s\-]/', '', $request->mobile);
         $cleanedMobile = preg_replace('/^(\+91|91|0)(?=\d{10}$)/', '', $cleanedMobile);
-        $request->merge(['mobile' => $cleanedMobile]);
+        
+        // Enforce fixed fee of 500 per month
+        $request->merge([
+            'mobile' => $cleanedMobile,
+            'fees' => 500,
+        ]);
 
         $validator = Validator::make($request->all(), [
             'student_name' => 'required|string|regex:/^[a-zA-Z\s]+$/',

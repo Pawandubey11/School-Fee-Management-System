@@ -44,20 +44,22 @@
     <span class="error" id="grade_error" style="color: black"></span>
 </div>
 <div class="col-md-6">
-    <label for="fees" class="form-label">Fees Per Month</label>
-    <input type="number" name="fees" class="form-control" id="fees" value="{{old('fees')}}" min="100" max="100000" required> @error('fees')<span class="text-danger">{{$message}}</span>@enderror
+    <label for="fees" class="form-label">Fees Per Month (₹)</label>
+    <input type="number" name="fees" class="form-control" id="fees" value="500" readonly style="background-color: #f8f9fa; font-weight: bold;" required>
+    <span class="text-dark small"><i class="bi bi-info-circle"></i> Fixed monthly fee: <strong>₹500</strong></span>
+    @error('fees')<span class="text-danger">{{$message}}</span>@enderror
     <span class="error" id="fees_error" style="color: black;"></span>
 </div>
 
 <div class="col-md-6">
    <label for="month" class="form-label">Total Months</label>
      <select id="month" class="form-select" name="month">
-      <option value="1">1 Month Fees</option>
-      <option value="2">2 Month Fees</option>
-      <option value="3">3 Month Fees</option>
-      <option value="4">4 Month Fees</option>
-      <option value="5">5 Month Fees</option>
-      <option value="6">6 Month Fees</option>
+      <option value="1">1 Month Fees (₹500)</option>
+      <option value="2">2 Month Fees (₹1,000)</option>
+      <option value="3">3 Month Fees (₹1,500)</option>
+      <option value="4">4 Month Fees (₹2,000)</option>
+      <option value="5">5 Month Fees (₹2,500)</option>
+      <option value="6">6 Month Fees (₹3,000)</option>
     </select> @error('month')<span class="text-danger">{{$message}}</span>@enderror
 </div>
 
