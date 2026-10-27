@@ -45,21 +45,24 @@
 </div>
 <div class="col-md-6">
     <label for="fees" class="form-label">Fees Per Month (₹)</label>
-    <input type="number" name="fees" class="form-control" id="fees" value="500" readonly style="background-color: #f8f9fa; font-weight: bold;" required>
-    <span class="text-dark small"><i class="bi bi-info-circle"></i> Fixed monthly fee: <strong>₹500</strong></span>
+    <input type="number" name="fees" class="form-control" id="fees" value="{{old('fees', 500)}}" min="1" max="1000000" placeholder="Enter fee per month" required>
+    <span class="text-muted small"><i class="bi bi-calculator"></i> Total months below update automatically</span>
     @error('fees')<span class="text-danger">{{$message}}</span>@enderror
     <span class="error" id="fees_error" style="color: black;"></span>
 </div>
 
 <div class="col-md-6">
-   <label for="month" class="form-label">Total Months</label>
+   <label for="month" class="form-label d-flex justify-content-between align-items-center">
+      <span>Total Months</span>
+      <span id="calculated_total_badge" class="badge bg-primary">Total: ₹500</span>
+   </label>
      <select id="month" class="form-select" name="month">
       <option value="1">1 Month Fees (₹500)</option>
-      <option value="2">2 Month Fees (₹1,000)</option>
-      <option value="3">3 Month Fees (₹1,500)</option>
-      <option value="4">4 Month Fees (₹2,000)</option>
-      <option value="5">5 Month Fees (₹2,500)</option>
-      <option value="6">6 Month Fees (₹3,000)</option>
+      <option value="2">2 Months Fees (₹1,000)</option>
+      <option value="3">3 Months Fees (₹1,500)</option>
+      <option value="4">4 Months Fees (₹2,000)</option>
+      <option value="5">5 Months Fees (₹2,500)</option>
+      <option value="6">6 Months Fees (₹3,000)</option>
     </select> @error('month')<span class="text-danger">{{$message}}</span>@enderror
 </div>
 
@@ -81,6 +84,30 @@
 <script>
     //Send form data to backend for creating an order id and then return/fetch this order id here back again
 $(document).ready(function(){
+    // Dynamically update month dropdown options and badge based on user-entered fee per month
+    function updateMonthDropdown() {
+        var rawFee = $('#fees').val();
+        var feePerMonth = parseFloat(rawFee);
+        if (isNaN(feePerMonth) || feePerMonth < 0) {
+            feePerMonth = 0;
+        }
+        var selectedMonth = parseInt($('#month').val()) || 1;
+        
+        for (var m = 1; m <= 6; m++) {
+            var totalAmount = feePerMonth * m;
+            var formattedAmount = totalAmount.toLocaleString('en-IN');
+            var optionText = m + (m === 1 ? ' Month Fees' : ' Months Fees') + ' (₹' + formattedAmount + ')';
+            $('#month option[value="' + m + '"]').text(optionText);
+        }
+        
+        var currentTotal = (feePerMonth * selectedMonth).toLocaleString('en-IN');
+        $('#calculated_total_badge').text('Total: ₹' + currentTotal);
+    }
+
+    $('#fees').on('input change keyup paste', updateMonthDropdown);
+    $('#month').on('change', updateMonthDropdown);
+    updateMonthDropdown();
+
     $('#submit_button').click(function(e) {      
         e.preventDefault(); 
         var student_name = $('#student_name').val();

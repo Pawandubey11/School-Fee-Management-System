@@ -24,10 +24,8 @@ class FormController extends Controller
         $cleanedMobile = preg_replace('/[\s\-]/', '', $request->mobile);
         $cleanedMobile = preg_replace('/^(\+91|91|0)(?=\d{10}$)/', '', $cleanedMobile);
         
-        // Enforce fixed fee of 500 per month
         $request->merge([
             'mobile' => $cleanedMobile,
-            'fees' => 500,
         ]);
 
         $validator = Validator::make($request->all(), [
@@ -84,7 +82,7 @@ class FormController extends Controller
                     "status" => "success",
                     "mode" => "live",
                     "order_id" => $order_id,
-                    "amount" => $amount,
+                    "amount" => $total_fees_month,
                     "student_name" => $request->student_name,
                     "email" => $request->email,
                     "mobile" => $cleanedMobile,
@@ -111,7 +109,7 @@ class FormController extends Controller
                 "status" => "success",
                 "mode" => "demo",
                 "order_id" => $order_id,
-                "amount" => $amount,
+                "amount" => $total_fees_month,
                 "student_name" => $request->student_name,
                 "email" => $request->email,
                 "mobile" => $cleanedMobile,
