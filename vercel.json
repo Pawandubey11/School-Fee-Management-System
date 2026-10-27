@@ -41,6 +41,8 @@
     "APP_NAME": "School Fee Management System",
     "APP_ENV": "production",
     "APP_DEBUG": "false",
+    "APP_TIMEZONE": "UTC",
+    "APP_URL": "https://school-fee-management-system-coral.vercel.app",
     "APP_KEY": "base64:aqO4h52UlJ2YgwnPPauIKLdtBMVBn2GQQOaZT8B16Z8=",
     "APP_CONFIG_CACHE": "/tmp/config.php",
     "APP_EVENTS_CACHE": "/tmp/events.php",
