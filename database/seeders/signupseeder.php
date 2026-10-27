@@ -14,13 +14,16 @@ class signupseeder extends Seeder
      */
     public function run(): void
     {
-        $store = new User;
-        $store->name = "Admin";
-        $store->email = "admin@ethereal.edu.in";
-        $store->password = Hash::make('admin@12345');
+        $adminEmail = env('ADMIN_EMAIL', 'admin@ethereal.edu.in');
+        $adminPassword = env('ADMIN_PASSWORD', 'admin@12345');
+
+        $store = User::where('email', $adminEmail)->first();
+        if (!$store) {
+            $store = new User;
+        }
+        $store->name = env('ADMIN_NAME', "Admin");
+        $store->email = $adminEmail;
+        $store->password = Hash::make($adminPassword);
         $store->save();
-
-
-
     }
 }

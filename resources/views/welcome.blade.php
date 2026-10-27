@@ -126,7 +126,7 @@ $(document).ready(function(){
 //function for pass detail to checkout page
 function paynow(amount,razororderid,name,email,contact){
     var options = {
-    "key": "{{env('RAZORPAY_KEY_ID')}}", // Enter the Key ID generated from the Dashboard
+    "key": "{{ config('services.razorpay.key') ?: env('RAZORPAY_KEY_ID') }}", // Enter the Key ID generated from the Dashboard
     "amount": amount, //pass through backend order id created controller
     "currency": "INR",
     "name": "Ethereal Echoes School", //your business name

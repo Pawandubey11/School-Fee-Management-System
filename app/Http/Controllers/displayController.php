@@ -10,7 +10,7 @@ class displayController extends Controller
 {   
     function receipt(REQUEST $request){
           $validator = Validator::make($request->all(), [
-            'fetch_name' => 'required|string|regex:/^[a-zA-Z]+$/',
+            'fetch_name' => 'required|string|regex:/^[a-zA-Z\s]+$/',
             'fetch_email' => 'required|email',
             'fetch_mobile' => 'required|numeric|digits:10',
             ]);

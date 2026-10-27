@@ -75,32 +75,41 @@ function refund($id){
     $record = payment::findOrFail($id); 
     $paymentId = $record->payment_id;
     $amount = $record->total_fees_paid;
-    $api = new Api(env('RAZORPAY_KEY_ID'), env('RAZORPAY_KEY_SECRET'));
- //$api->payment->fetch($paymentId)->refund(array("amount"=> "100", "speed"=>"normal", "notes"=>array("notes_key_1"=>"Beam me up Scotty.", "notes_key_2"=>"Engage"), "receipt"=>"Receipt No. 11"));
- //check first already refund or not on server by  fetch the payment detail the below line code by doc/github repo
-    $payment = $api->payment->fetch($paymentId);
- //dd($payment);
-    if ($payment->status == 'refunded') {
-       return response()->json(['refund' => 'This payment has already been refunded.']);
-    }
- //make refund the below code doc/github repo 
-    $refund = $api->payment->fetch($paymentId)->refund([
-    'amount' => $amount*100, 
-    'speed' => 'normal', 
-    'notes' => [
-        'reason' => 'Refund for order cancellation'
-     ]
-    ]);
+    $key = config('services.razorpay.key', env('RAZORPAY_KEY_ID'));
+    $secret = config('services.razorpay.secret', env('RAZORPAY_KEY_SECRET'));
 
-    if ($refund){  //if refunded successfully on razorpay server than also modified in db
-      $change_status_db = Payment::where('payment_id',$paymentId)->first();
-      $change_status_db->payment_status = "Refunded";
-      $change_status_db->save();
-        
+    if (!$key || !$secret) {
+        return response()->json(['refund' => 'Razorpay credentials are not configured on the server.']);
+    }
+
+    try {
+        $api = new Api($key, $secret);
+        $payment = $api->payment->fetch($paymentId);
+        if ($payment->status == 'refunded') {
+           return response()->json(['refund' => 'This payment has already been refunded.']);
+        }
+        $refund = $api->payment->fetch($paymentId)->refund([
+        'amount' => $amount*100, 
+        'speed' => 'normal', 
+        'notes' => [
+            'reason' => 'Refund for order cancellation'
+         ]
+        ]);
+
+        if ($refund){  //if refunded successfully on razorpay server than also modified in db
+          $change_status_db = Payment::where('payment_id',$paymentId)->first();
+          if ($change_status_db) {
+              $change_status_db->payment_status = "Refunded";
+              $change_status_db->save();
+          }
+            
           return response()->json(['refund' => 'Refund successful']);
-      } else {
+        } else {
           return response()->json(['refund' => 'Refund failed']);
-      }
+        }
+    } catch (\Exception $e) {
+        return response()->json(['refund' => 'Refund error: ' . $e->getMessage()]);
+    }
 }
 function signout(){
     Auth::logout();
