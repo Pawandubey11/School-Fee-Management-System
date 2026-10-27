@@ -22,6 +22,44 @@
     <h1 class="text-danger " style="display: inline-block;">Ethereal Echoes School Fees Dashboard</h1>
 </div>
 
+{{-- Top Summary Statistic Cards for Total Collected Data --}}
+<div class="container mb-4">
+    <div class="row g-3 text-center">
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1"><i class="bi bi-cash-stack text-primary"></i> Total Fees Collected</h6>
+                    <h3 class="fw-bold text-primary" id="total-collected">₹0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm border-success">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1"><i class="bi bi-check-circle-fill text-success"></i> Successful Payments</h6>
+                    <h3 class="fw-bold text-success" id="total-success">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm border-info">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1"><i class="bi bi-receipt text-info"></i> Total Receipts</h6>
+                    <h3 class="fw-bold text-info" id="total-records">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card shadow-sm border-warning">
+                <div class="card-body">
+                    <h6 class="text-muted mb-1"><i class="bi bi-arrow-counterclockwise text-warning"></i> Total Refunded</h6>
+                    <h3 class="fw-bold text-warning" id="total-refunded">₹0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <div class="container center-container">
 <form class="row row-cols-lg-auto g-3 align-items-center" autocomplete="off">
@@ -76,7 +114,14 @@
              </thead> 
 <tbody id="data-body">
 </tbody>
- </table>
+<tfoot class="table-light">
+    <tr>
+        <th colspan="6" class="text-end d-none d-sm-table-cell fw-bold">Total Collection:</th>
+        <th class="d-none d-sm-table-cell fw-bold text-success" id="table-total-paid">₹0</th>
+        <th colspan="2"></th>
+    </tr>
+</tfoot>
+</table>
         </div>
 
 
@@ -85,6 +130,30 @@
  <script src="{{url('js/jquery-3.7.1.min.js')}}" type="text/javascript"></script> 
  <script>
     $(document).ready(function() {
+function updateSummary(records) {
+    var totalCollected = 0;
+    var totalSuccess = 0;
+    var totalRefunded = 0;
+
+    if (records && Array.isArray(records)) {
+        records.forEach(function(record) {
+            var amt = parseFloat(record.total_fees_paid) || 0;
+            if (record.payment_status === 'Successful') {
+                totalCollected += amt;
+                totalSuccess++;
+            } else if (record.payment_status === 'Refunded') {
+                totalRefunded += amt;
+            }
+        });
+    }
+
+    $('#total-collected').text('₹' + totalCollected.toLocaleString('en-IN'));
+    $('#total-success').text(totalSuccess);
+    $('#total-records').text(records ? records.length : 0);
+    $('#total-refunded').text('₹' + totalRefunded.toLocaleString('en-IN'));
+    $('#table-total-paid').text('₹' + totalCollected.toLocaleString('en-IN'));
+}
+
 // Function to fetch and display all data whe refresh the function load
 function fetchData() {
         // Perform AJAX call to fetch data
@@ -92,6 +161,7 @@ function fetchData() {
             url: "{{route('allrecord')}}",
             type: 'GET',
             success: function(response) {
+                updateSummary(response);
                 // Clear the existing table body
                 $('#data-body').empty();
                 // Parse the received data and append it to tbody
@@ -165,6 +235,7 @@ $.ajax({
         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
     },
             success: function(response) {
+                updateSummary(response);
                 // Clear the existing table body
                 $('#data-body').empty();
                 // Parse the received data and append it to tbody
